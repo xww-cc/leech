@@ -1,19 +1,25 @@
 <?php
+
+namespace Xww\Leech;
+
 class SingleFill
 {
     public $fillStatus = false; //是否达到补仓跌幅
     public $newOpt = [];
+
     public $opt = [
         'total_amount' => '5000', //总金额
         'base_amount' => '100', //基础金额
-        'old_position_amount' => '100', //旧的补仓总金额
-        'old_position_avg' => '3000', //旧的补仓均价
-        'old_position_volume' => '0.03333333', //旧的补仓数量
-        'fee_position_volume' => '0.00005', //手续费占用数量
+        'position_amount' => '100', //总补仓金额
+        'position_avg' => '3000', //持仓均价
+        'position_volume' => '0.03333333', //总补仓数量
+        'position_fee_volume' => '0.00005', //手续费占用数量
         'fee_ratio' => '0.0015', //手续费率
-        'drop_ratio' => '1.2', //触发补仓跌幅比率
-        'fill_drop_ratio' => '0.6', //补仓后控制跌幅比率
-        'depth_price' => '200', //行情价格
+        'min_amount' => '10', //最小金额限制
+        'drop_ratio' => '1.2', //触发补仓跌幅比
+        'fill_drop_ratio' => '0.6', //补仓后控制跌幅比
+        'latest_fill_price' => '3000', //上次补仓价格
+        'depth_price' => '3000', //行情价格
     ];
 
     //统一配置;
@@ -23,7 +29,7 @@ class SingleFill
     }
 
     //设置行情价格
-    public function setDepthPrice($depth_price)
+    public function updateDepthPrice($depth_price)
     {
         $this->opt['depth_price'] = $depth_price;
     }
@@ -40,17 +46,27 @@ class SingleFill
         $drop_ratio = number_format($drop_ratio, 2);
 
         //是否满足补仓
-        if ($drop_ratio >= $o['fill_drop_ratio']) {
+        if ($drop_ratio < $o['drop_ratio']) {
             $this->fillStatus = false;
         } else {
-            if ($o['old_position_amount'] + $o['min_amount'] > $o['total_amount']) {
+            if ($o['position_amount'] + $o['min_amount'] <= $o['total_amount']) {
                 $this->fillStatus = true;
             } else {
                 $this->fillStatus = false;
             }
         }
-
         return $drop_ratio;
+    }
+
+    //获取下次补仓行情价格 阀值
+    public function getNextFillDepthPrice()
+    {
+        //跌幅 = ( 当前持仓均价 - 当前行情价格) / 当前持仓均价 * 100 
+        //跌幅*持仓均价/100 = 持仓均价 - 当前行情价
+        //行情价格 = 持仓均价*(1- 跌幅/100)
+        $o = $this->opt;
+        $next_fill_depth_price = $o['position_avg'] * (1 - $o['drop_ratio'] / 100);
+        return $next_fill_depth_price;
     }
 
     //补仓后持仓均价
@@ -95,37 +111,58 @@ class SingleFill
             //补仓数量 = (旧的仓位金额 - 仓位均价*旧的补仓数量)/(仓位均价-补仓价格)
             $fill_position_avg = $this->getFillPositionAvg();
             $fill_price = $o['depth_price'];
-            $fill_volume = ($o['old_position_amount'] - $fill_position_avg * $o['fill_position_volume']) / ($fill_position_avg - $fill_price);
-            $old_position_amount = $o['old_position_amount'] + $fill_price * $fill_volume;
-            if ($old_position_amount > $o['total_amount']) {
-                $fill_volume =  ($o['total_amount'] - $old_position_amount) / $fill_price;
-                $old_position_amount = $o['old_position_amount'] + $fill_price * $fill_volume;
+            $fill_volume = ($o['position_amount'] - $fill_position_avg * $o['position_volume']) / ($fill_position_avg - $fill_price);
+            $fill_amount =  $fill_price * $fill_volume;
+            $position_amount = $o['position_amount'] + $fill_amount;
+            if ($position_amount > $o['total_amount']) {
+                $fill_amount = $o['total_amount'] - $o['position_amount'];
+                $fill_volume =  $fill_amount / $fill_price;
+                $position_amount = $o['position_amount'] + $fill_amount;
             }
-            $old_position_avg = $fill_position_avg;
-            $old_position_volume = $o['old_position_volume'] + $fill_volume;
-            $residue_position_amount = $o['total_amount'] - $old_position_amount;
-            $fee_position_volume = $old_position_volume * $o['fee_ratio'];
+            
+            $position_volume = $o['position_volume'] + $fill_volume;
+            $position_avg = $position_amount/$position_volume;
+            $residue_position_amount = $o['total_amount'] - $position_amount;
+            $fill_fee_volume = $fill_volume * $o['fee_ratio'];
+            $position_fee_volume = $o['position_fee_volume'] + $fill_fee_volume;
 
-            $o['old_position_amount'] = $old_position_amount;
+            $fill_price_ratio = ($o['latest_fill_price'] - $fill_price) / $o['latest_fill_price'] * 100;
+            $fill_price_ratio = $this->fortmatNumber($fill_price_ratio);
+            $fill_price_fee_ratio =  ($o['latest_fill_price'] - $fill_price * (1 + $o['fee_ratio'])) / $o['latest_fill_price'] * 100;
+            $fill_price_fee_ratio = $this->fortmatNumber($fill_price_fee_ratio);
+            $fill_amount_ratio = $this->fortmatNumber($fill_amount / $o['base_amount']);
+            $fill_drop_ratio= $this->fortmatNumber(($position_avg-$fill_price)/$position_avg*100);
+
+            $o['position_amount'] = $position_amount;
             $o['residue_position_amount'] = $residue_position_amount;
-            $o['old_position_avg'] = $old_position_avg;
-            $o['old_position_volume'] = $old_position_volume;
-            $o['fee_position_volume'] = $fee_position_volume;
-            $this->newOpt = $o;
-            return  [
+            $o['position_avg'] = $position_avg;
+            $o['position_volume'] = $position_volume;
+            $o['position_fee_volume'] = $position_fee_volume;
+            $o['latest_fill_price'] = $fill_price;
+            $o['fill_drop_ratio'] = $fill_drop_ratio;
+            $o['fill_data'] = [
                 'fill_price' => $fill_price, //补仓价格
                 'fill_volume' => $fill_volume, //补仓数量
+                'fill_amount' => $fill_amount, //补仓的金额
+                'fee_volume' => $fill_amount * $o['fee_ratio'], //手续费 数量
+                'fill_price_fee_ratio' => $fill_price_fee_ratio, //补仓价格跌幅比去除手续费
+                'fill_price_ratio' => $fill_price_ratio, //补仓价格跌幅比
+                'fill_amount_ratio' => $fill_amount_ratio, //补仓基础金额比
             ];
+            $this->newOpt = $o;
+            return  $o['fill_data'];
         }
         return [];
     }
 
-    public function getData()
+    public function fortmatNumber($number)
     {
-        return [
-            'fill_data' => $this->getFillData(),
-            'old_opt' => $this->opt,
-            'new_opt' => $this->newOpt,
-        ];
+        return intval($number * 100) / 100;
+    }
+
+    //获取补仓后的详细数据
+    public function getAfterFillDetails()
+    {
+        return $this->newOpt;
     }
 }

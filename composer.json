@@ -1,0 +1,33 @@
+{
+    "name": "xww-cc/leech",
+    "description": "A robot that automatically calculates filling positions by controlling declines",
+    "keywords": ["leech","fill","positions","calculates"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "xiao wang wang",
+            "email": "xww12333@outlook.com",
+            "homepage": "https://github.com/xww-cc"
+        }
+    ],
+    "require": {
+        "php": "^7.0 || ^8.0",
+        "phpoption/phpoption": "^1.8"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "Xww\\Leech\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Xww\\Tests\\Leech\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist"
+    }
+}
