@@ -3,9 +3,9 @@ include "./vendor/autoload.php";
 
 use Xww\Leech\ContinuousFill;
 
-$total_amount = 10000;
+$total_amount = 5000;
 $base_amount = 100;
-$open_price = 4000;
+$open_price = 3389.6;
 $fee_ratio = 0.0015;
 $position_volume = $base_amount / $open_price;
 $position_free_volume = $position_volume * $fee_ratio;
@@ -21,8 +21,8 @@ $opt = [
     'min_amount' => '10', //最新金额
     // 'drop_ratio' =>      '0.8,1.2,1.6,6,4.8,4.2,6', //触发补仓跌幅比 数列
     // 'fill_drop_ratio' => '0.5,0.6,1,4,3.8,3,4.2', //补仓后控制跌幅比 数列
-    'drop_ratio' =>      '1,2,3', //触发补仓跌幅比 数列
-    'fill_drop_ratio' => '0.6,1.4,2.3', //补仓后控制跌幅比 数列
+    'drop_ratio' => '1,2,3,8,8,7', //触发补仓跌幅比 数列 2021-05.19
+    'fill_drop_ratio' => '0.6,1.6,2.3,6,5,5', //补仓后控制跌幅比 数列 2021-05.19
     'latest_fill_price' => $open_price, //上次补仓价格
     'depth_price' => $open_price, //行情价格
 ];
@@ -60,4 +60,3 @@ print_r($fill_sequences);
 // $fill_detail = $singleFill->getAfterFillDetails();
 // print_r($fill_data);
 // print_r($fill_detail);
-
