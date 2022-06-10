@@ -37,8 +37,8 @@ class ContinuousFill
         $o = $this->opt;
         $old_position_volume = $o['position_amount'] / $o['position_avg'];
         $position_fee_volume = $old_position_volume * $o['fee_ratio'];
-        $this->opt['position_volume'] = $old_position_volume;
-        $this->opt['position_fee_volume'] = $position_fee_volume;
+        $o['position_volume'] = $old_position_volume;
+        $o['position_fee_volume'] = $position_fee_volume;
         $this->dropRatios = explode(',', $o['drop_ratio']);
         $this->fillDropRatios = explode(',', $o['fill_drop_ratio']);
         $o['drop_ratio'] = $this->dropRatios[0];
@@ -119,9 +119,50 @@ class ContinuousFill
                 'fill_price_fee_ratio_str' => implode(',', array_filter($fill_price_fee_ratios)),
                 'fill_price_ratio_str' => implode(',', array_filter($fill_price_ratios)),
                 'fill_amount_ratio_str' => implode(',', array_filter($fill_amount_ratios)),
+                // 'close_ratio_str' => $this->opt['fill_drop_ratio'],
             ];
         }
         return [];
+    }
+
+    public function getFillAd()
+    {
+        if (isset($this->data['fill_datas'])) {
+            $fill_price_fee_ratios = array_column($this->data['fill_datas'], 'fill_price_fee_ratio');
+            $fill_price_ratios = array_column($this->data['fill_datas'], 'fill_price_ratio');
+            $fill_amount_ratios = array_column($this->data['fill_datas'], 'fill_amount_ratio');
+            $len = count($fill_price_fee_ratios);
+            $base_amount = $this->opt['base_amount'];
+            $close_ratios = explode(',', $this->opt['fill_drop_ratio']);
+            $fpfr_sum = 0;
+            $fpr_sum = 0;
+            $far_sum = 1;
+            $close_i = 0;
+            $arr = [];
+            for ($i = 0; $i < $len; $i++) {
+                $add_i = $i + 1;
+                if (isset($close_ratios[$add_i])) {
+                    $close_i = $add_i;
+                }
+                $fpfr = $fill_price_fee_ratios[$i];
+                $fpr = $fill_price_ratios[$i];
+                $far = $fill_amount_ratios[$add_i];
+                $cr = $close_ratios[$close_i];
+                $fpfr_sum += $fpfr;
+                $fpr_sum += $fpr;
+                $far_sum += $far;
+                $amount = $base_amount * $far_sum;
+                $tmp = [
+                    'fill_price_fee_ratio_sum' => $fpfr_sum,
+                    'fill_price_ratio_sum' => $fpr_sum,
+                    'fill_amount_ratio_sum' => $far_sum,
+                    'total_amount' => $amount,
+                    'close_ratio' => $cr,
+                ];
+                $arr[] = $tmp;
+            }
+            return $arr;
+        }
     }
 
     //获取补仓相信数据
