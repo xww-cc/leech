@@ -4,8 +4,8 @@ include "./vendor/autoload.php";
 use Xww\Leech\ContinuousFill;
 
 $total_amount = 5000;
-$base_amount = 100;
-$open_price = 3100;
+$base_amount = 80;
+$open_price = 3380;
 $fee_ratio = 0.0015;
 $position_volume = $base_amount / $open_price;
 $position_free_volume = $position_volume * $fee_ratio;
@@ -20,14 +20,17 @@ $opt = [
     'fee_ratio' => $fee_ratio, //手续费率
     'min_amount' => '10', //
 
+    'drop_ratio' => '6', //触发补仓跌幅比 数列 2021-05.19
+    'fill_drop_ratio' => '2', //补仓后控制跌幅比 数列 2021-05.19 低收益 低风险
+
     // 'drop_ratio' => '2,3,4,5,6,7,8,9', //触发补仓跌幅比 数列 2021-05.19
     // 'fill_drop_ratio' => '1,1.5,2.5,3.5,4.5,5.5,6.5', //补仓后控制跌幅比 数列 2021-05.19 低收益 低风险
 
     // 'drop_ratio' => '2,2,3,3,4,5,6,7,8,9,10', //触发补仓跌幅比 数列 2021-05.19
     // 'fill_drop_ratio' => '1,1.5,2,2.5,3,4,5,6,7,8', //补仓后控制跌幅比 数列 2021-05.19 低收益 低风险
 
-    'drop_ratio' => '2,3,4,5,6,7,8,9', //触发补仓跌幅比 数列 2021-05.19
-    'fill_drop_ratio' => '1,1.7,2.7,3.7,4.7,5.7,6.7', //补仓后控制跌幅比 数列 2021-05.19 低收益 低风险
+    // 'drop_ratio' => '2,3,4,5,6,7,8,9', //触发补仓跌幅比 数列 2021-05.19
+    // 'fill_drop_ratio' => '1,1.7,2.7,3.7,4.7,5.7,6.7', //补仓后控制跌幅比 数列 2021-05.19 低收益 低风险
     'latest_fill_price' => $open_price, //上次补仓价格
     'depth_price' => $open_price, //行情价格
 ];
@@ -42,7 +45,7 @@ $fill_details = $continuousFill->getFillDetails();
 
 print_r($fill_details);
 print_r($fill_sequences);
-print_r($fill_ad);
+// print_r($fill_ad);
 
 // use Xww\Leech\SingleFill;
 
